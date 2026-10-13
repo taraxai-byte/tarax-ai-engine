@@ -1,1 +1,14 @@
 
+{
+  "name": "tarax-ai-engine",
+  "version": "1.1.0",
+  "description": "Autonomous B2B Global Trade & Multi-Agent Engine Powered by Google Gemini",
+  "main": "lib/tarax-engine.ts",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}
