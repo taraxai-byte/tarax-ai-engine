@@ -1,19 +1,15 @@
 /**
  * ============================================================================
  * TARAX AI — Autonomous B2B Global Trade & Multi-Agent Negotiation Engine
+ * Powered by Google Gemini (100% Free Tier Supported)
  * ============================================================================
  * @module TaraxAIEngine
- * @description A unified digital memory architecture and multi-agent execution 
- *              system for 100% autonomous global B2B trade orchestration.
- * @version 1.0.0
- * @license MIT
+ * @version 1.1.0
  */
 
-import { OpenAI } from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export interface SupplierProfile {
   id: string;
@@ -109,7 +105,7 @@ export class TaraxTradeEngine {
   public async executeAutonomousTrade(rfq: BuyerRFQ): Promise<ExecutedTradeContract> {
     const suppliers = taraxMemory.getAllSuppliers();
 
-    const systemPrompt = `
+    const prompt = `
       You are TARAX AI — the world's leading autonomous B2B Global Trade Engine.
       You execute negotiations between Buyers and Global Manufacturers instantly.
 
@@ -131,9 +127,9 @@ export class TaraxTradeEngine {
         "supplierId": "string",
         "supplierCompanyName": "string",
         "negotiatedUnitPriceUSD": number,
-        "incoterm": "CIF" | "FOB" | "DDP",
-        "complianceStatus": "VERIFIED" | "ACTION_REQUIRED",
-        "riskScore": number,
+        "incoterm": "CIF",
+        "complianceStatus": "VERIFIED",
+        "riskScore": 2,
         "aiNegotiationSummary": "string",
         "escrowStructure": [
           { "phaseName": "Deposit", "percentageAllocation": 30, "releaseTrigger": "Contract Signing" },
@@ -141,16 +137,14 @@ export class TaraxTradeEngine {
           { "phaseName": "Final Delivery", "percentageAllocation": 30, "releaseTrigger": "Bill of Lading Verification" }
         ]
       }
+      Return ONLY raw valid JSON, no markdown formatting.
     `;
 
-    const aiResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'system', content: systemPrompt }],
-      response_format: { type: 'json_object' },
-      temperature: 0.1,
-    });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text().replace(/```json|```/g, '').trim();
 
-    const parsedResult = JSON.parse(aiResponse.choices[0].message.content || '{}');
+    const parsedResult = JSON.parse(responseText || '{}');
 
     const contract: ExecutedTradeContract = {
       contractId: `TARAX-CONTRACT-${Date.now()}`,
@@ -165,42 +159,11 @@ export class TaraxTradeEngine {
       complianceStatus: parsedResult.complianceStatus || 'VERIFIED',
       escrowStructure: parsedResult.escrowStructure || [],
       riskScore: parsedResult.riskScore || 2,
-      aiNegotiationSummary: parsedResult.aiNegotiationSummary || 'Automated execution successfully completed by TARAX AI.',
+      aiNegotiationSummary: parsedResult.aiNegotiationSummary || 'Automated execution successfully completed by TARAX AI powered by Gemini.',
     };
 
     taraxMemory.registerContract(contract);
 
     return contract;
-  }
-}
-
-export async function handleTaraxTradeRequest(requestBody: any) {
-  try {
-    const engine = new TaraxTradeEngine();
-    
-    const rfq: BuyerRFQ = {
-      rfqId: requestBody.rfqId || `RFQ-${Date.now()}`,
-      buyerCompany: requestBody.buyerCompany || 'Global Buyer Corp',
-      targetProduct: requestBody.targetProduct || 'Industrial Machinery',
-      requiredQuantity: Number(requestBody.requiredQuantity) || 100,
-      targetUnitPriceUSD: Number(requestBody.targetUnitPriceUSD) || 500,
-      destinationPort: requestBody.destinationPort || 'Rotterdam Port',
-      mandatoryCertifications: requestBody.mandatoryCertifications || ['ISO9001', 'CE'],
-    };
-
-    const executedContract = await engine.executeAutonomousTrade(rfq);
-
-    return {
-      status: 200,
-      success: true,
-      provider: 'TARAX AI Global Trade Protocol',
-      contract: executedContract,
-    };
-  } catch (error: any) {
-    return {
-      status: 500,
-      success: false,
-      error: error.message || 'TARAX AI Execution Error',
-    };
   }
 }
